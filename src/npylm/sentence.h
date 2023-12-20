@@ -14,9 +14,10 @@ namespace npylm {
 		bool _supervised;	// 教師データかどうか
 		wchar_t const* _characters; // _sentence_strの各文字
 		id* _word_ids;		// <bos>2つと<eos>1つを含める
-		std::wstring _sentence_str;	// 生の文データ
-		Sentence(std::wstring sentence);
-		Sentence(std::wstring sentence, bool supervised);
+		int sentence_size;
+		Sentence(const std::wstring& sentence);
+		Sentence(const std::wstring& sentence, bool supervised);
+		wchar_t* get_content_as_tokens(const std::wstring& content);
 		~Sentence();
 		Sentence* copy();
 		int size();

@@ -29,8 +29,9 @@ def build_corpus(filepath, directory):
 
     if filepath is not None:
         with codecs.open(filepath, "r", "utf-8") as f:
-            for sentence_str in f:
+            for idx, sentence_str in enumerate(f):
                 sentence_str = sentence_str.strip()
+                sentence_str = sentence_str.rstrip()
                 corpus.add_sentence(sentence_str)
 
     if directory is not None:
@@ -39,6 +40,7 @@ def build_corpus(filepath, directory):
                              "utf-8") as f:
                 for sentence_str in f:
                     sentence_str = sentence_str.strip()
+                    sentence_str = sentence_str.rstrip()
                     corpus.add_sentence(sentence_str)
 
     return corpus
@@ -50,6 +52,11 @@ def main():
     parser.add_argument(
         "--train-filename",
         "-file",
+        type=str,
+        default=None,
+        help="訓練用のテキストファイルのパス")
+    parser.add_argument(
+        "--dev-filename",
         type=str,
         default=None,
         help="訓練用のテキストファイルのパス")
@@ -93,8 +100,12 @@ def main():
         pass
 
     # 訓練データを追加
-    corpus = build_corpus(args.train_filename, args.train_directory)
-    dataset = npylm.dataset(corpus, args.train_split, args.seed)
+    print("building train corpus...")
+    train_corpus = build_corpus(args.train_filename, args.train_directory)
+    print("building dev corpus...")
+    dev_corpus = build_corpus(args.dev_filename, args.train_directory)
+    print("building dataset...")
+    dataset = npylm.dataset(train_corpus, dev_corpus, args.seed)
 
     print("#train", dataset.get_num_sentences_train())
     print("#dev", dataset.get_num_sentences_dev())
@@ -104,6 +115,7 @@ def main():
     dictionary.save(os.path.join(args.working_directory, "npylm.dict"))
 
     # モデル
+    print(args.max_word_length)
     model = npylm.model(dataset, args.max_word_length)  # 可能な単語の最大長を指定
 
     # ハイパーパラメータの設定
@@ -143,7 +155,7 @@ def main():
                                                        elapsed_time))
         if epoch % 10 == 0:
             printr("")
-            trainer.print_segmentation_train(10)
+            trainer.print_segmentation_dev(10)
             print("ppl_dev: {}".format(trainer.compute_perplexity_dev()))
 
 

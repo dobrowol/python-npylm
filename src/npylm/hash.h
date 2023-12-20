@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 
 namespace npylm {
 	size_t load_bytes(const char* p, int n);
@@ -13,4 +14,6 @@ namespace npylm {
 	size_t hash_wstring(const std::wstring &str);
 	size_t hash_substring_ptr(wchar_t const* ptr, int start, int end);		// endを含む
 	size_t hash_substring(const std::wstring &str, int start, int end);		// endを含む
+	size_t hashWstringVector(const std::vector<std::wstring>& vec);
+	size_t hash_substringVector(const std::vector<std::wstring>& vec, int start, int end);
 }

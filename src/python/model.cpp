@@ -42,9 +42,9 @@ Model::~Model()
 // 日本語周り
 void Model::_set_locale()
 {
-    setlocale(LC_CTYPE, "ja_JP.UTF-8");
+    setlocale(LC_CTYPE, "en_US.UTF-8");
     std::ios_base::sync_with_stdio(false);
-    std::locale default_loc("ja_JP.UTF-8");
+    std::locale default_loc("en_US.UTF-8");
     std::locale::global(default_loc);
     std::locale ctype_default(std::locale::classic(), default_loc, std::locale::ctype); //※
     std::wcout.imbue(ctype_default);

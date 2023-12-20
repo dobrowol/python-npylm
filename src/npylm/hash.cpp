@@ -1,4 +1,6 @@
 #include "hash.h"
+#include "drain_helper.h"
+#include <iostream>
 
 namespace npylm{
 	size_t load_bytes(const char* p, int n){
@@ -70,13 +72,37 @@ namespace npylm{
 	}
 #endif
 	size_t hash_wstring(const std::wstring &str){
-		return hash_bytes(str.data(), str.size() * sizeof(wchar_t));
+		return hash_bytes(split_to_wchars(str), (countSplitChar(str,L' ')+1) * sizeof(wchar_t));
 	}
 	size_t hash_substring_ptr(wchar_t const* ptr, int start, int end){
 		return hash_bytes(ptr + start, (end - start + 1) * sizeof(wchar_t));
 	}
 	size_t hash_substring(const std::wstring &str, int start, int end){
-		wchar_t const* ptr = str.data();
+		wchar_t const* ptr = split_to_wchars(str);
 		return hash_substring_ptr(ptr, start, end);
+	}
+	size_t hashWstringVector(const std::vector<std::wstring>& vec) {
+		std::hash<std::wstring> hasher;
+		size_t combinedHash = 0;
+
+		for (const auto& ws : vec) {
+			// Combine the hash of the current string with the existing hash value
+			combinedHash ^= hasher(ws) + 0x9e3779b9 + (combinedHash << 6) + (combinedHash >> 2);
+		}
+
+		return combinedHash;
+	}
+	size_t hash_substringVector(const std::vector<std::wstring>& vec, int start, int end)
+	{
+		std::hash<std::wstring> hasher;
+		size_t combinedHash = 0;
+
+		for (int i = start;i<=end;i++) {
+			const auto& ws = vec[i];
+			// Combine the hash of the current string with the existing hash value
+			combinedHash ^= hasher(ws) + 0x9e3779b9 + (combinedHash << 6) + (combinedHash >> 2);
+		}
+
+		return combinedHash;
 	}
 } // namespace npylm

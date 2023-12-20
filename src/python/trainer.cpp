@@ -334,17 +334,17 @@ namespace npylm {
 		_print_segmentation(num_to_print, _dataset->_sentence_sequences_train, _rand_indices_train);
 	}
 	void Trainer::print_segmentation_dev(int num_to_print){
-		shuffle(_rand_indices_dev.begin(), _rand_indices_dev.end(), sampler::mt);
+		//shuffle(_rand_indices_dev.begin(), _rand_indices_dev.end(), sampler::mt);
 		_print_segmentation(num_to_print, _dataset->_sentence_sequences_dev, _rand_indices_dev);
 	}
 	void Trainer::_print_segmentation(int num_to_print, std::vector<Sentence*> &dataset, std::vector<int> &rand_indices){
-		num_to_print = std::min((int)dataset.size(), num_to_print);
+		num_to_print = std::max((int)dataset.size(), num_to_print);
 		std::vector<int> segments;		// 分割の一時保存用
 		for(int n = 0;n < num_to_print;n++){
 			if (PyErr_CheckSignals() != 0) {	// ctrl+cが押されたかチェック
 				return;		
 			}
-			int data_index = rand_indices[n];
+			int data_index = n;
 			Sentence* sentence = dataset[data_index]->copy();
 			_model->_lattice->viterbi_decode(sentence, segments);
 			sentence->split(segments);

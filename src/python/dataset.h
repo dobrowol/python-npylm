@@ -11,7 +11,7 @@ namespace npylm {
 	class Dataset{
 	private:
 		Corpus* _corpus;
-		void _add_words_to_dataset(std::wstring &sentence_str, std::vector<Sentence*> &dataset);
+		void _add_words_to_dataset(const std::wstring &sentence_str, std::vector<Sentence*> &dataset);
 		void _detect_collision_of_sentence(Sentence* sentence, std::unordered_map<id, std::wstring> &pool, int max_word_length);
 	public:
 		int _max_sentence_length;
@@ -21,6 +21,7 @@ namespace npylm {
 		std::vector<Sentence*> _sentence_sequences_train;
 		std::vector<Sentence*> _sentence_sequences_dev;
 		Dataset(Corpus* corpus, double train_split, int seed);
+		Dataset(Corpus* train_corpus, Corpus* dev_corpus, int seed);
 		~Dataset();
 		int get_num_sentences_train();
 		int get_num_sentences_supervised();

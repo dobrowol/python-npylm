@@ -22,12 +22,13 @@ namespace npylm {
 		train_split = std::min(1.0, std::max(0.0, train_split));
 		int num_train_data = corpus->get_num_sentences() * train_split;
 		for(int i = 0;i < rand_indices.size();i++){
-			std::wstring &sentence_str = corpus->_sentence_str_list[rand_indices[i]];
-			if(i < num_train_data){
+			std::wstring &sentence_str = corpus->_sentence_str_list[i];
+			//std::cout <<"i < num_train_data " << i << " < " << num_train_data << std::endl;
+			//if(i < num_train_data){
 				_add_words_to_dataset(sentence_str, _sentence_sequences_train);
-			}else{
+			//}else{
 				_add_words_to_dataset(sentence_str, _sentence_sequences_dev);
-			}
+			//}
 			// 統計
 			if(_max_sentence_length == 0 || sentence_str.size() > _max_sentence_length){
 				_max_sentence_length = sentence_str.size();
@@ -36,6 +37,7 @@ namespace npylm {
 		}
 		// 教師分割データがあればすべてtrainに追加
 		_num_supervised_data = corpus->get_num_true_segmentations();
+		//std::cout <<"corpus->get_num_true_segmentations() "<<_num_supervised_data<<std::endl;
 		for(int i = 0;i < corpus->get_num_true_segmentations();i++){
 			// 分割から元の文を復元
 			std::vector<std::wstring> &words = corpus->_word_sequence_list[i];
@@ -52,6 +54,7 @@ namespace npylm {
 			// データセットに追加
 			Sentence* sentence = new Sentence(sentence_str, true);
 			sentence->split(segmentation);		// 分割
+			//std::cout<<"_sentence_sequences_train.push_back(sentence) "<<sentence<<std::endl;
 			_sentence_sequences_train.push_back(sentence);
 			// 統計
 			if(_max_sentence_length == 0 || sentence_str.size() > _max_sentence_length){
@@ -60,6 +63,69 @@ namespace npylm {
 			sum_sentence_length += sentence_str.size();
 		}
 		_avg_sentence_length = sum_sentence_length / (double)corpus->get_num_sentences();
+	}
+	Dataset::Dataset(Corpus* train_corpus, Corpus* dev_corpus, int seed){
+		_dict = new Dictionary();
+		_corpus = train_corpus;
+		_max_sentence_length = 0;
+		_avg_sentence_length = 0;
+		int sum_sentence_length = 0;
+		std::vector<int> rand_indices;
+		for(int i = 0;i < train_corpus->get_num_sentences();i++){
+			rand_indices.push_back(i);
+		}
+		// まず教師なし学習用のデータをtrain/devに振り分ける
+		sampler::set_seed(seed);
+		shuffle(rand_indices.begin(), rand_indices.end(), sampler::mt);	// データをシャッフル
+		int num_train_data = train_corpus->get_num_sentences();
+		int num_dev_data = dev_corpus->get_num_sentences();
+		for(int i = 0;i < rand_indices.size();i++){
+			std::wstring &sentence_str = train_corpus->_sentence_str_list[i];
+			_add_words_to_dataset(sentence_str, _sentence_sequences_train);
+
+			if(_max_sentence_length == 0 || sentence_str.size() > _max_sentence_length){
+				_max_sentence_length = sentence_str.size();
+			}
+			sum_sentence_length += sentence_str.size();
+		}
+		for(int i = 0;i < dev_corpus->get_num_sentences();i++){
+			std::wstring &sentence_str = dev_corpus->_sentence_str_list[i];
+
+			_add_words_to_dataset(sentence_str, _sentence_sequences_dev);
+
+			if(_max_sentence_length == 0 || sentence_str.size() > _max_sentence_length){
+				_max_sentence_length = sentence_str.size();
+			}
+			sum_sentence_length += sentence_str.size();
+		}
+		// 教師分割データがあればすべてtrainに追加
+		_num_supervised_data = train_corpus->get_num_true_segmentations();
+		//std::cout <<"corpus->get_num_true_segmentations() "<<_num_supervised_data<<std::endl;
+		for(int i = 0;i < train_corpus->get_num_true_segmentations();i++){
+			// 分割から元の文を復元
+			std::vector<std::wstring> &words = train_corpus->_word_sequence_list[i];
+			std::vector<int> segmentation;
+			std::wstring sentence_str;
+			for(auto word_str: words){
+				sentence_str += word_str;
+				segmentation.push_back(word_str.size());
+			}
+			// 構成文字を辞書に追加
+			for(wchar_t character: sentence_str){
+				_dict->add_character(character);
+			}
+			// データセットに追加
+			Sentence* sentence = new Sentence(sentence_str, true);
+			sentence->split(segmentation);		// 分割
+			//std::cout<<"_sentence_sequences_train.push_back(sentence) "<<sentence<<std::endl;
+			_sentence_sequences_train.push_back(sentence);
+			// 統計
+			if(_max_sentence_length == 0 || sentence_str.size() > _max_sentence_length){
+				_max_sentence_length = sentence_str.size();
+			}
+			sum_sentence_length += sentence_str.size();
+		}
+		_avg_sentence_length = sum_sentence_length / ((double)num_train_data+(double)num_dev_data);
 	}
 	Dataset::~Dataset(){
 		for(int n = 0;n < _sentence_sequences_train.size();n++){
@@ -81,7 +147,7 @@ namespace npylm {
 	int Dataset::get_num_sentences_supervised(){
 		return _num_supervised_data;
 	}
-	void Dataset::_add_words_to_dataset(std::wstring &sentence_str, std::vector<Sentence*> &dataset){
+	void Dataset::_add_words_to_dataset(const std::wstring &sentence_str, std::vector<Sentence*> &dataset){
 		assert(sentence_str.size() > 0);
 		for(wchar_t character: sentence_str){
 			_dict->add_character(character);

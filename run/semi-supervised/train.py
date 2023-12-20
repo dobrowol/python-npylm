@@ -1,5 +1,4 @@
 import argparse, sys, os, time, codecs, random
-import MeCab
 import npylm
 
 
@@ -19,45 +18,30 @@ def printr(string):
     sys.stdout.flush()
 
 
-def build_corpus(filepath, directory, semisupervised_split_ratio):
-    assert filepath is not None or directory is not None
+def build_corpus(file_name=None, supervised_file=None):
     corpus = npylm.corpus()
-    sentence_list = []
+    unsup_sentence_list = []
+    supervised_sentence_list = []
 
-    if filepath is not None:
-        with codecs.open(filepath, "r", "utf-8") as f:
+    if file_name is not None:
+        with codecs.open(file_name, "r", "utf-8") as f:
             for sentence_str in f:
                 sentence_str = sentence_str.strip()
-                sentence_list.append(sentence_str)
+                unsup_sentence_list.append(sentence_str)
+    if supervised_file is not None:
+        with codecs.open(supervised_file, "r", "utf-8") as f:
+            for sentence_str in f:
+                sentence_str = sentence_str.strip()
+                supervised_sentence_list.append(sentence_str)
 
-    if directory is not None:
-        for filename in os.listdir(directory):
-            with codecs.open(os.path.join(directory, filename), "r",
-                             "utf-8") as f:
-                for sentence_str in f:
-                    sentence_str = sentence_str.strip()
-                    sentence_list.append(sentence_str)
-
-    random.shuffle(sentence_list)
-
-    semisupervised_split = int(len(sentence_list) * semisupervised_split_ratio)
-    sentence_list_l = sentence_list[:semisupervised_split]
-    sentence_list_u = sentence_list[semisupervised_split:]
-
-    tagger = MeCab.Tagger()
-    tagger.parse("")
-    for sentence_str in sentence_list_l:
-        m = tagger.parseToNode(sentence_str)  # 形態素解析
-        words = []
-        while m:
-            word = m.surface
-            if len(word) > 0:
-                words.append(word)
-            m = m.next
+    random.shuffle(unsup_sentence_list)
+    print("add true segmentation")
+    for sentence_str in supervised_sentence_list:
+        words = sentence_str.split(' ')
         if len(words) > 0:
             corpus.add_true_segmentation(words)
-
-    for sentence_str in sentence_list_u:
+    print("add unsupervised sentences")
+    for sentence_str in unsup_sentence_list:
         corpus.add_sentence(sentence_str)
 
     return corpus
@@ -70,8 +54,15 @@ def main():
         "--train-filename",
         "-file",
         type=str,
-        default=None,
-        help="訓練用のテキストファイルのパス")
+        default=None)
+    parser.add_argument(
+        "--dev-filename",
+        type=str,
+        default=None)
+    parser.add_argument(
+        "--supervised-filename",
+        type=str,
+        default=None)
     parser.add_argument(
         "--train-directory",
         "-dir",
@@ -118,9 +109,12 @@ def main():
         pass
 
     # 訓練データを追加
-    corpus = build_corpus(args.train_filename, args.train_directory,
-                          args.semisupervised_split)
-    dataset = npylm.dataset(corpus, args.train_split, args.seed)
+    print("building train corpus...")
+    train_corpus = build_corpus(args.train_filename, args.supervised_filename)
+    print("building dev corpus...")
+    dev_corpus = build_corpus(args.dev_filename)
+    print("building dataset...")
+    dataset = npylm.dataset(train_corpus, dev_corpus, args.seed)
 
     print("#train", dataset.get_num_sentences_train())
     print("#train (supervised)", dataset.get_num_sentences_supervised())
@@ -171,6 +165,7 @@ def main():
         if epoch % 10 == 0:
             printr("")
             trainer.print_segmentation_train(10)
+            trainer.print_segmentation_dev(10)
             print("ppl_dev: {}".format(trainer.compute_perplexity_dev()))
 
 

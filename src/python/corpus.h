@@ -6,6 +6,7 @@ namespace npylm {
 	class Corpus{
 	private:
 		void _before_add_true_segmentation(boost::python::list &py_word_str_list, std::vector<std::wstring> &word_str_vec);
+		wchar_t* _get_content_as_tokens(const std::wstring& content);
 	public:
 		std::vector<std::wstring> _sentence_str_list;
 		std::vector<std::vector<std::wstring>> _word_sequence_list;

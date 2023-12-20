@@ -18,6 +18,7 @@ BOOST_PYTHON_MODULE(npylm)
         .def("add_sentence", &Corpus::add_sentence);
 
     boost::python::class_<Dataset>("dataset", boost::python::init<Corpus*, double, int>())
+        .def(boost::python::init<Corpus*, Corpus*, int>())
         .def("get_max_sentence_length", &Dataset::get_max_sentence_length)
         .def("detect_hash_collision", &Dataset::detect_hash_collision)
         .def("get_num_sentences_train", &Dataset::get_num_sentences_train)
